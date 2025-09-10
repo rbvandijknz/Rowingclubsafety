@@ -92,18 +92,37 @@
 
     <!-- Firebase SDKs -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, query, onSnapshot, deleteDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // --- Firebase Initialization and Auth ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        const firebaseConfig = {
+          apiKey: "AIzaSyC-OCA-2qBp5DhUIS4GH9FENnGlRrhZ2gk",
+          authDomain: "safetytracker-d74d1.firebaseapp.com",
+          projectId: "safetytracker-d74d1",
+          storageBucket: "safetytracker-d74d1.firebasestorage.app",
+          messagingSenderId: "421605254971",
+          appId: "1:421605254971:web:2256aa354a3202747b791e",
+        };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        let app;
+        let db;
+        let auth;
+        let appId;
+
+        try {
+            // Set debug level for all Firebase services before initialization
+            setLogLevel('debug');
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            appId = firebaseConfig.projectId;
+        } catch (error) {
+            console.error("Firebase initialization failed:", error);
+            // You can add a UI message here to inform the user
+        }
         
         let userId = null;
         let memberList = [];
@@ -159,19 +178,13 @@
                 listenForOnWaterLog();
             }
         });
-
-        if (initialAuthToken) {
-            await signInWithCustomToken(auth, initialAuthToken).catch(err => {
-                console.error("Custom token sign-in failed:", err);
-                signInAnonymously(auth);
-            });
-        } else {
-            setPersistence(auth, browserSessionPersistence).then(() => {
-                return signInAnonymously(auth);
-            }).catch((error) => {
-                console.error("Anonymous sign-in failed:", error);
-            });
-        }
+        
+        // This is the call that is failing due to a Firebase configuration issue.
+        // Go to your Firebase Console > Authentication > Sign-in method, and ensure
+        // the "Anonymous" provider is enabled.
+        signInAnonymously(auth).catch((error) => {
+            console.error("Anonymous sign-in failed:", error);
+        });
 
         // --- Firestore Initialization and Listeners ---
 
