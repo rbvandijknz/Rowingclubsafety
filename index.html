@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRC Rowing Safety Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 sm:p-6">
+    <div class="w-full max-w-4xl bg-white rounded-xl shadow-lg p-6 sm:p-8 space-y-6">
+        <!-- Header Section -->
+        <header class="text-center space-y-2">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900">TRC Rowing Safety Tracker</h1>
+            <p class="text-gray-500">For members to check in and out.</p>
+        </header>
+
+        <!-- Main Lists Container -->
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Club Members List Section -->
+            <div class="flex-1 space-y-4">
+                <h2 class="text-xl font-semibold text-gray-800 flex items-center justify-between">
+                    <span>Club Members</span>
+                    <span id="member-count" class="bg-blue-100 text-blue-800 text-sm font-bold px-3 py-1 rounded-full">0 members</span>
+                </h2>
+                <div id="members-list" class="space-y-3 bg-gray-50 rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto">
+                    <p id="loading-message" class="text-gray-500 text-center animate-pulse">Loading members list...</p>
+                    <!-- Member items will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Currently On Water List Section -->
+            <div class="flex-1 space-y-4">
+                <h2 class="text-xl font-semibold text-gray-800 flex items-center justify-between">
+                    <span>Currently On Water</span>
+                    <span id="on-water-count" class="bg-green-100 text-green-800 text-sm font-bold px-3 py-1 rounded-full">0 on water</span>
+                </h2>
+                <div id="on-water-list" class="space-y-3 bg-white rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto border border-gray-200">
+                    <p id="on-water-message" class="text-gray-500 text-center">No one is on the water.</p>
+                    <!-- Rower items will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+
+        ---
+
+        <!-- Admin Actions Section -->
+        <div class="border-t border-gray-200 pt-6 mt-6 space-y-4">
+            <h3 class="text-lg font-semibold text-gray-800">Admin Actions</h3>
+            
+            <!-- Add Member Form -->
+            <div class="flex flex-col sm:flex-row items-center gap-4">
+                <input type="text" id="add-member-name" placeholder="Enter new member's name" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="add-member-btn" class="w-full sm:w-auto px-6 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-md">
+                    Add Member
+                </button>
+            </div>
+
+            <!-- General Admin Buttons -->
+            <div class="space-y-2">
+                <button id="clear-all-btn" class="w-full px-6 py-3 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md">
+                    Clear All On-Water Rowers
+                </button>
+            </div>
+            <div id="status-message" class="text-sm font-medium p-2 rounded-lg text-center hidden"></div>
+        </div>
+
+        <!-- Hidden Modal for Confirmation -->
+        <div id="modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirm Action</h3>
+                <p id="modal-message" class="text-gray-600 mb-6"></p>
+                <div class="flex justify-end gap-3">
+                    <button id="modal-cancel-btn" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-200">Cancel</button>
+                    <button id="modal-confirm-btn" class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition duration-200">Confirm</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hidden User ID Display (for debugging/sharing) -->
+        <div class="text-xs text-gray-400 mt-6 text-center">
+            User ID: <span id="user-id">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, query, onSnapshot, deleteDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- Firebase Initialization and Auth ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let userId = null;
+        let memberList = [];
+        let onWaterMap = new Map();
+
+        // Get references to UI elements
+        const membersListEl = document.getElementById('members-list');
+        const onWaterListEl = document.getElementById('on-water-list');
+        const memberCountEl = document.getElementById('member-count');
+        const onWaterCountEl = document.getElementById('on-water-count');
+        const loadingMessageEl = document.getElementById('loading-message');
+        const statusMessageEl = document.getElementById('status-message');
+        const userIdSpan = document.getElementById('user-id');
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        const addMemberNameInput = document.getElementById('add-member-name');
+        const addMemberBtn = document.getElementById('add-member-btn');
+        const onWaterMessageEl = document.getElementById('on-water-message');
+
+        const modal = document.getElementById('modal');
+        const modalMessageEl = document.getElementById('modal-message');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+
+        // Show/Hide Modal
+        function showModal(message, onConfirm) {
+            modalMessageEl.textContent = message;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            modalConfirmBtn.onclick = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                onConfirm();
+            };
+            
+            modalCancelBtn.onclick = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            };
+        }
+
+        // --- Authentication Logic ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                userIdSpan.textContent = userId;
+                
+                // Initialize master list if it doesn't exist
+                await initializeMasterList();
+
+                // Start listening to both collections for real-time updates
+                listenForMembers();
+                listenForOnWaterLog();
+            }
+        });
+
+        if (initialAuthToken) {
+            await signInWithCustomToken(auth, initialAuthToken).catch(err => {
+                console.error("Custom token sign-in failed:", err);
+                signInAnonymously(auth);
+            });
+        } else {
+            setPersistence(auth, browserSessionPersistence).then(() => {
+                return signInAnonymously(auth);
+            }).catch((error) => {
+                console.error("Anonymous sign-in failed:", error);
+            });
+        }
+
+        // --- Firestore Initialization and Listeners ---
+
+        async function initializeMasterList() {
+            const membersColRef = collection(db, 'artifacts', appId, 'public', 'data', 'members');
+            const membersSnap = await getDocs(membersColRef);
+
+            if (membersSnap.empty) {
+                const sampleNames = ["Alex Smith", "Ben Jones", "Chloe Davis", "Daniel Evans", "Emily Foster", "Frank Green", "Grace Hall", "Henry White", "Isla King", "Jacob Lee"];
+                const batch = writeBatch(db);
+                sampleNames.forEach(name => {
+                    const memberId = name.replace(/\s/g, '').toLowerCase();
+                    const docRef = doc(membersColRef, memberId);
+                    batch.set(docRef, { name: name });
+                });
+                await batch.commit();
+            }
+        }
+        
+        function listenForMembers() {
+            const membersColRef = collection(db, 'artifacts', appId, 'public', 'data', 'members');
+            onSnapshot(membersColRef, (snapshot) => {
+                memberList = snapshot.docs.map(d => ({ id: d.id, name: d.data().name }));
+                memberCountEl.textContent = `${memberList.length} members`;
+                renderMembersList();
+            }, (error) => {
+                console.error("Error fetching members:", error);
+            });
+        }
+        
+        function listenForOnWaterLog() {
+            const onWaterColRef = collection(db, 'artifacts', appId, 'public', 'data', 'on_water_log');
+            onSnapshot(onWaterColRef, (snapshot) => {
+                onWaterMap.clear();
+                snapshot.forEach(doc => {
+                    onWaterMap.set(doc.id, doc.data());
+                });
+                onWaterCountEl.textContent = `${onWaterMap.size} on water`;
+                renderMembersList(); // Re-render main list to update button states
+                renderOnWaterList(); // Render the separate on-water list
+            }, (error) => {
+                console.error("Error fetching on water log:", error);
+            });
+        }
+
+        // --- UI Rendering Functions ---
+        
+        function renderMembersList() {
+            membersListEl.innerHTML = '';
+            loadingMessageEl.classList.add('hidden');
+            
+            if (memberList.length === 0) {
+                membersListEl.innerHTML = '<p class="text-gray-500 text-center py-4">No members in the list. Use admin actions to add some.</p>';
+            }
+
+            memberList.forEach(member => {
+                const isOnWater = onWaterMap.has(member.id);
+                const memberItem = document.createElement('div');
+                memberItem.className = `flex items-center justify-between p-4 rounded-lg shadow-sm border border-gray-200 transition-transform transform hover:scale-105 ${isOnWater ? 'bg-green-100' : 'bg-white'}`;
+                
+                memberItem.innerHTML = `
+                    <div class="flex-grow">
+                        <p class="font-semibold text-gray-900 text-lg">${member.name}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="check-btn px-4 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out ${isOnWater ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}"
+                                data-member-id="${member.id}"
+                                data-is-on-water="${isOnWater}">
+                            ${isOnWater ? 'Check Out' : 'Check In'}
+                        </button>
+                        <button class="remove-member-btn px-2 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-red-500 hover:bg-red-600"
+                                data-member-id="${member.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                membersListEl.appendChild(memberItem);
+            });
+
+            // Attach event listeners for check-in/out buttons
+            document.querySelectorAll('.check-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const memberId = event.currentTarget.getAttribute('data-member-id');
+                    const isOnWater = event.currentTarget.getAttribute('data-is-on-water') === 'true';
+                    const memberName = memberList.find(m => m.id === memberId).name;
+
+                    if (isOnWater) {
+                        showModal(`Are you sure you want to check out ${memberName}?`, () => {
+                            checkOutRower(memberId);
+                        });
+                    } else {
+                        checkInRower(memberId, memberName);
+                    }
+                });
+            });
+
+            // Attach event listeners for remove member buttons
+            document.querySelectorAll('.remove-member-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const memberId = event.currentTarget.getAttribute('data-member-id');
+                    const memberName = memberList.find(m => m.id === memberId).name;
+                    showModal(`Are you sure you want to remove ${memberName} from the member list?`, () => {
+                        removeMember(memberId);
+                    });
+                });
+            });
+        }
+
+        function renderOnWaterList() {
+            onWaterListEl.innerHTML = '';
+            
+            if (onWaterMap.size === 0) {
+                onWaterListEl.innerHTML = '<p class="text-gray-500 text-center py-4">No one is on the water.</p>';
+                return;
+            }
+
+            const onWaterRowers = Array.from(onWaterMap.values());
+            onWaterRowers.forEach(rower => {
+                const rowerItem = document.createElement('div');
+                const lastUpdated = rower.timestamp ? new Date(rower.timestamp.toDate()).toLocaleTimeString() : 'N/A';
+                
+                rowerItem.className = 'flex items-center justify-between p-4 bg-white rounded-lg shadow-sm border border-gray-200';
+                rowerItem.innerHTML = `
+                    <div class="flex-grow">
+                        <p class="font-semibold text-gray-900 text-lg">${rower.name}</p>
+                        <p class="text-xs text-gray-500">Checked in at: ${lastUpdated}</p>
+                    </div>
+                `;
+                onWaterListEl.appendChild(rowerItem);
+            });
+        }
+
+        // --- Member Management Functions ---
+        
+        addMemberBtn.addEventListener('click', async () => {
+            const newMemberName = addMemberNameInput.value.trim();
+            if (!newMemberName) {
+                statusMessageEl.textContent = 'Please enter a name.';
+                statusMessageEl.classList.remove('hidden', 'bg-green-100');
+                statusMessageEl.classList.add('bg-yellow-100', 'text-yellow-800');
+                return;
+            }
+            addMemberNameInput.value = '';
+            
+            const memberId = newMemberName.replace(/\s/g, '').toLowerCase();
+            const memberDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'members', memberId);
+
+            try {
+                await setDoc(memberDocRef, { name: newMemberName });
+                statusMessageEl.textContent = `${newMemberName} added successfully.`;
+                statusMessageEl.classList.remove('hidden', 'bg-yellow-100', 'bg-red-100');
+                statusMessageEl.classList.add('bg-green-100', 'text-green-800');
+            } catch (e) {
+                console.error("Error adding member:", e);
+                statusMessageEl.textContent = `Error adding ${newMemberName}. Please try again.`;
+                statusMessageEl.classList.remove('hidden', 'bg-green-100', 'bg-yellow-100');
+                statusMessageEl.classList.add('bg-red-100', 'text-red-800');
+            }
+        });
+
+        async function removeMember(memberId) {
+            const memberName = memberList.find(m => m.id === memberId)?.name;
+            const memberDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'members', memberId);
+            const onWaterDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'on_water_log', memberId);
+            
+            try {
+                // Check if they are on the water first
+                if (onWaterMap.has(memberId)) {
+                    statusMessageEl.textContent = `${memberName} is currently on the water and cannot be removed.`;
+                    statusMessageEl.classList.remove('hidden', 'bg-green-100');
+                    statusMessageEl.classList.add('bg-red-100', 'text-red-800');
+                    return;
+                }
+                
+                await deleteDoc(memberDocRef);
+                statusMessageEl.textContent = `${memberName} removed successfully.`;
+                statusMessageEl.classList.remove('hidden', 'bg-red-100');
+                statusMessageEl.classList.add('bg-green-100', 'text-green-800');
+            } catch (e) {
+                console.error("Error removing member:", e);
+                statusMessageEl.textContent = `Error removing ${memberName}. Please try again.`;
+                statusMessageEl.classList.remove('hidden', 'bg-green-100');
+                statusMessageEl.classList.add('bg-red-100', 'text-red-800');
+            }
+        }
+        
+        // --- Check-in/Check-out Functions ---
+
+        async function checkInRower(memberId, memberName) {
+            const onWaterDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'on_water_log', memberId);
+            try {
+                await setDoc(onWaterDocRef, { name: memberName, timestamp: new Date() });
+                statusMessageEl.textContent = `${memberName} checked in successfully.`;
+                statusMessageEl.classList.remove('hidden');
+                statusMessageEl.classList.add('bg-green-100', 'text-green-800');
+            } catch (e) {
+                console.error("Error checking in rower:", e);
+                statusMessageEl.textContent = `Error checking in ${memberName}. Please try again.`;
+                statusMessageEl.classList.remove('hidden');
+                statusMessageEl.classList.add('bg-red-100', 'text-red-800');
+            }
+        }
+
+        async function checkOutRower(memberId) {
+            const onWaterDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'on_water_log', memberId);
+            try {
+                await deleteDoc(onWaterDocRef);
+                statusMessageEl.textContent = 'Rower checked out successfully.';
+                statusMessageEl.classList.remove('hidden');
+                statusMessageEl.classList.add('bg-green-100', 'text-green-800');
+            } catch (e) {
+                console.error("Error checking out rower:", e);
+                statusMessageEl.textContent = `Error checking out rower. Please try again.`;
+                statusMessageEl.classList.remove('hidden');
+                statusMessageEl.classList.add('bg-red-100', 'text-red-800');
+            }
+        }
+        
+        // --- Admin Action: Clear All ---
+
+        clearAllBtn.addEventListener('click', () => {
+            showModal("Are you sure you want to check out all rowers? This action cannot be undone.", async () => {
+                const onWaterColRef = collection(db, 'artifacts', appId, 'public', 'data', 'on_water_log');
+                const onWaterSnap = await getDocs(onWaterColRef);
+                const batch = writeBatch(db);
+                
+                onWaterSnap.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                statusMessageEl.textContent = "All rowers have been checked out.";
+                statusMessageEl.classList.remove('hidden');
+                statusMessageEl.classList.add('bg-green-100', 'text-green-800');
+            });
+        });
+    </script>
+</body>
+</html>
