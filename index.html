@@ -30,6 +30,7 @@
                     <span>Club Members</span>
                     <span id="member-count" class="bg-blue-100 text-blue-800 text-sm font-bold px-3 py-1 rounded-full">0 members</span>
                 </h2>
+                <input type="text" id="search-member-name" placeholder="Find your name..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <div id="members-list" class="space-y-3 bg-gray-50 rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto">
                     <p id="loading-message" class="text-gray-500 text-center animate-pulse">Loading members list...</p>
                     <!-- Member items will be dynamically added here -->
@@ -140,6 +141,7 @@
         const addMemberNameInput = document.getElementById('add-member-name');
         const addMemberBtn = document.getElementById('add-member-btn');
         const onWaterMessageEl = document.getElementById('on-water-message');
+        const searchInput = document.getElementById('search-member-name'); // New search input
 
         const modal = document.getElementById('modal');
         const modalMessageEl = document.getElementById('modal-message');
@@ -232,15 +234,15 @@
 
         // --- UI Rendering Functions ---
         
-        function renderMembersList() {
+        function renderMembersList(listToRender = memberList) {
             membersListEl.innerHTML = '';
             loadingMessageEl.classList.add('hidden');
             
-            if (memberList.length === 0) {
-                membersListEl.innerHTML = '<p class="text-gray-500 text-center py-4">No members in the list. Use admin actions to add some.</p>';
+            if (listToRender.length === 0) {
+                membersListEl.innerHTML = '<p class="text-gray-500 text-center py-4">No members match your search.</p>';
             }
 
-            memberList.forEach(member => {
+            listToRender.forEach(member => {
                 const isOnWater = onWaterMap.has(member.id);
                 const memberItem = document.createElement('div');
                 memberItem.className = `flex items-center justify-between p-4 rounded-lg shadow-sm border border-gray-200 transition-transform transform hover:scale-105 ${isOnWater ? 'bg-green-100' : 'bg-white'}`;
@@ -422,6 +424,19 @@
                 statusMessageEl.classList.remove('hidden');
                 statusMessageEl.classList.add('bg-green-100', 'text-green-800');
             });
+        });
+
+        // --- Search functionality ---
+        searchInput.addEventListener('input', (event) => {
+            const searchTerm = event.target.value.toLowerCase().trim();
+            if (searchTerm === '') {
+                renderMembersList(); // Show all members if search is empty
+            } else {
+                const filteredMembers = memberList.filter(member => 
+                    member.name.toLowerCase().includes(searchTerm)
+                );
+                renderMembersList(filteredMembers);
+            }
         });
     </script>
 </body>
