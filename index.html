@@ -22,54 +22,77 @@
             <p class="text-gray-500">For members to check in and out.</p>
         </header>
 
-        <!-- Main Lists Container -->
-        <div class="flex flex-col lg:flex-row gap-6">
-            <!-- Club Members List Section -->
-            <div class="flex-1 space-y-4">
-                <h2 class="text-xl font-semibold text-gray-800 flex items-center justify-between">
-                    <span>Club Members</span>
-                    <span id="member-count" class="bg-blue-100 text-blue-800 text-sm font-bold px-3 py-1 rounded-full">0 members</span>
-                </h2>
-                <input type="text" id="search-member-name" placeholder="Find your name..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <div id="members-list" class="space-y-3 bg-gray-50 rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto">
-                    <p id="loading-message" class="text-gray-500 text-center animate-pulse">Loading members list...</p>
-                    <!-- Member items will be dynamically added here -->
-                </div>
-            </div>
-
-            <!-- Currently On Water List Section -->
-            <div class="flex-1 space-y-4">
-                <h2 class="text-xl font-semibold text-gray-800 flex items-center justify-between">
-                    <span>Currently On Water</span>
-                    <span id="on-water-count" class="bg-green-100 text-green-800 text-sm font-bold px-3 py-1 rounded-full">0 on water</span>
-                </h2>
-                <div id="on-water-list" class="space-y-3 bg-white rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto border border-gray-200">
-                    <p id="on-water-message" class="text-gray-500 text-center">No one is on the water.</p>
-                    <!-- Rower items will be dynamically added here -->
-                </div>
-                 <div class="mt-4">
-                    <button id="clear-all-btn" class="w-full px-6 py-3 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md">
-                        Clear All On-Water Rowers
-                    </button>
-                </div>
-            </div>
+        <!-- Login and Signup Section -->
+        <div id="auth-container" class="space-y-4">
+            <h2 class="text-xl sm:text-2xl font-semibold text-gray-800 text-center">Login to Continue</h2>
+            
+            <input type="email" id="auth-email" placeholder="Email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <input type="password" id="auth-password" placeholder="Password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            
+            <button id="login-btn" class="w-full px-6 py-3 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md">
+                Log In
+            </button>
+            <button id="signup-btn" class="w-full px-6 py-3 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-md">
+                Sign Up
+            </button>
+            <div id="auth-status-message" class="text-sm font-medium p-2 rounded-lg text-center hidden"></div>
         </div>
 
-        ---
-
-        <!-- Admin Actions Section -->
-        <div class="border-t border-gray-200 pt-6 mt-6 space-y-4">
-            <h3 class="text-lg font-semibold text-gray-800">Admin Actions</h3>
+        <!-- Main App Content (Hidden by default) -->
+        <div id="app-container" class="hidden space-y-6">
+             <button id="logout-btn" class="w-full px-4 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 shadow-md">
+                Log Out
+            </button>
             
-            <!-- Add Member Form -->
-            <div class="flex flex-col sm:flex-row items-center gap-4">
-                <input type="text" id="add-member-name" placeholder="Enter new member's name" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button id="add-member-btn" class="w-full sm:w-auto px-6 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-md">
-                    Add Member
-                </button>
+            <!-- Main Lists Container -->
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- Club Members List Section -->
+                <div class="flex-1 space-y-4">
+                    <h2 class="text-xl font-semibold text-gray-800 flex items-center justify-between">
+                        <span>Club Members</span>
+                        <span id="member-count" class="bg-blue-100 text-blue-800 text-sm font-bold px-3 py-1 rounded-full">0 members</span>
+                    </h2>
+                    <input type="text" id="search-member-name" placeholder="Find your name..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div id="members-list" class="space-y-3 bg-gray-50 rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto">
+                        <p id="loading-message" class="text-gray-500 text-center animate-pulse">Loading members list...</p>
+                        <!-- Member items will be dynamically added here -->
+                    </div>
+                </div>
+
+                <!-- Currently On Water List Section -->
+                <div class="flex-1 space-y-4">
+                    <h2 class="text-xl font-semibold text-gray-800 flex items-center justify-between">
+                        <span>Currently On Water</span>
+                        <span id="on-water-count" class="bg-green-100 text-green-800 text-sm font-bold px-3 py-1 rounded-full">0 on water</span>
+                    </h2>
+                    <div id="on-water-list" class="space-y-3 bg-white rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto border border-gray-200">
+                        <p id="on-water-message" class="text-gray-500 text-center">No one is on the water.</p>
+                        <!-- Rower items will be dynamically added here -->
+                    </div>
+                    <div class="mt-4">
+                        <button id="clear-all-btn" class="w-full px-6 py-3 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md">
+                            Clear All On-Water Rowers
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div id="status-message" class="text-sm font-medium p-2 rounded-lg text-center hidden"></div>
+            ---
+
+            <!-- Admin Actions Section -->
+            <div class="border-t border-gray-200 pt-6 mt-6 space-y-4">
+                <h3 class="text-lg font-semibold text-gray-800">Admin Actions</h3>
+                
+                <!-- Add Member Form -->
+                <div class="flex flex-col sm:flex-row items-center gap-4">
+                    <input type="text" id="add-member-name" placeholder="Enter new member's name" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="add-member-btn" class="w-full sm:w-auto px-6 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-md">
+                        Add Member
+                    </button>
+                </div>
+
+                <div id="status-message" class="text-sm font-medium p-2 rounded-lg text-center hidden"></div>
+            </div>
         </div>
 
         <!-- Hidden Modal for Confirmation -->
@@ -93,7 +116,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, collection, onSnapshot, deleteDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         // --- Firebase Initialization and Auth ---
@@ -129,6 +152,15 @@
         let onWaterMap = new Map();
 
         // Get references to UI elements
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const authEmailInput = document.getElementById('auth-email');
+        const authPasswordInput = document.getElementById('auth-password');
+        const authStatusMessageEl = document.getElementById('auth-status-message');
+
         const membersListEl = document.getElementById('members-list');
         const onWaterListEl = document.getElementById('on-water-list');
         const memberCountEl = document.getElementById('member-count');
@@ -166,10 +198,55 @@
         }
 
         // --- Authentication Logic ---
+        loginBtn.addEventListener('click', async () => {
+            const email = authEmailInput.value;
+            const password = authPasswordInput.value;
+            if (!email || !password) {
+                authStatusMessageEl.textContent = "Please enter both email and password.";
+                authStatusMessageEl.classList.remove('hidden', 'bg-green-100');
+                authStatusMessageEl.classList.add('bg-yellow-100', 'text-yellow-800');
+                return;
+            }
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Login failed:", error);
+                authStatusMessageEl.textContent = error.message;
+                authStatusMessageEl.classList.remove('hidden', 'bg-green-100');
+                authStatusMessageEl.classList.add('bg-red-100', 'text-red-800');
+            }
+        });
+
+        signupBtn.addEventListener('click', async () => {
+            const email = authEmailInput.value;
+            const password = authPasswordInput.value;
+            if (!email || !password) {
+                authStatusMessageEl.textContent = "Please enter both email and password.";
+                authStatusMessageEl.classList.remove('hidden', 'bg-green-100');
+                authStatusMessageEl.classList.add('bg-yellow-100', 'text-yellow-800');
+                return;
+            }
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error("Signup failed:", error);
+                authStatusMessageEl.textContent = error.message;
+                authStatusMessageEl.classList.remove('hidden', 'bg-green-100');
+                authStatusMessageEl.classList.add('bg-red-100', 'text-red-800');
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            await signOut(auth);
+        });
+
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // User is signed in
                 userId = user.uid;
                 userIdSpan.textContent = userId;
+                authContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
                 
                 // Initialize master list if it doesn't exist
                 await initializeMasterList();
@@ -177,14 +254,16 @@
                 // Start listening to both collections for real-time updates
                 listenForMembers();
                 listenForOnWaterLog();
+            } else {
+                // User is signed out
+                userId = null;
+                userIdSpan.textContent = 'Not logged in';
+                authContainer.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+                // Clear the lists
+                membersListEl.innerHTML = '';
+                onWaterListEl.innerHTML = '';
             }
-        });
-        
-        // This is the call that is failing due to a Firebase configuration issue.
-        // Go to your Firebase Console > Authentication > Sign-in method, and ensure
-        // the "Anonymous" provider is enabled.
-        signInAnonymously(auth).catch((error) => {
-            console.error("Anonymous sign-in failed:", error);
         });
 
         // --- Firestore Initialization and Listeners ---
