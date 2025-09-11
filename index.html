@@ -941,7 +941,7 @@
 
             crew.members.forEach(member => {
                 const docRef = doc(onWaterColRef, member.id);
-                batch.delete(doc.ref);
+                batch.delete(docRef);
             });
 
             try {
