@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rowing Safety Tracker</title>
+    <title>Rowing Safety & Crew Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -12,13 +12,17 @@
             background-color: #f3f4f6;
             color: #1f2937;
         }
+        .drag-over {
+            border: 2px dashed #3b82f6;
+            background-color: #eff6ff;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 sm:p-6">
     <div class="w-full max-w-4xl bg-white rounded-xl shadow-lg p-6 sm:p-8 space-y-6">
         <!-- Header Section -->
         <header class="text-center space-y-2">
-            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900">Rowing Safety Tracker</h1>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900">Rowing Safety & Crew Tracker</h1>
             <p class="text-gray-500">For members to check in and out.</p>
         </header>
 
@@ -41,32 +45,126 @@
         <!-- Main App Content (Hidden by default) -->
         <div id="app-container" class="hidden space-y-6">
             
-            <!-- Main Lists Container -->
-            <div class="flex flex-col lg:flex-row gap-6">
-                <!-- Club Members List Section -->
-                <div class="flex-1 space-y-4">
-                    <h2 class="text-xl font-semibold text-gray-800 flex items-center justify-between">
-                        <span>Club Members</span>
-                        <span id="member-count" class="bg-blue-100 text-blue-800 text-sm font-bold px-3 py-1 rounded-full">0 members</span>
-                    </h2>
-                    <input type="text" id="search-member-name" placeholder="Find your name..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <div id="members-list" class="space-y-3 bg-gray-50 rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto">
-                        <p id="loading-message" class="text-gray-500 text-center animate-pulse">Loading members list...</p>
-                        <!-- Member items will be dynamically added here -->
+            <!-- Navigation for Admin -->
+            <div id="admin-nav" class="flex justify-center gap-4 hidden">
+                <button id="go-to-tracker-btn" class="px-4 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md">
+                    Safety Tracker
+                </button>
+                <button id="go-to-crews-btn" class="px-4 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md">
+                    Crew Management
+                </button>
+                <button id="go-to-users-btn" class="px-4 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md">
+                    User Management
+                </button>
+            </div>
+
+            <!-- Main Tracker View -->
+            <div id="tracker-container">
+                <!-- Main Lists Container -->
+                <div class="flex flex-col lg:flex-row gap-6">
+                    <!-- Club Members List Section -->
+                    <div class="flex-1 space-y-4">
+                        <h2 class="text-xl font-semibold text-gray-800 flex items-center justify-between">
+                            <span>Club Members</span>
+                            <span id="member-count" class="bg-blue-100 text-blue-800 text-sm font-bold px-3 py-1 rounded-full">0 members</span>
+                        </h2>
+                        <input type="text" id="search-member-name" placeholder="Find your name..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div id="members-list" class="space-y-3 bg-gray-50 rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto">
+                            <p id="loading-message" class="text-gray-500 text-center animate-pulse">Loading members list...</p>
+                            <!-- Member items will be dynamically added here -->
+                        </div>
+                    </div>
+
+                    <!-- Currently On Water List Section -->
+                    <div class="flex-1 space-y-4">
+                        <h2 class="text-xl font-semibold text-gray-800 flex items-center justify-between">
+                            <span>Currently On Water</span>
+                            <span id="on-water-count" class="bg-green-100 text-green-800 text-sm font-bold px-3 py-1 rounded-full">0 on water</span>
+                        </h2>
+                        <div id="on-water-list" class="space-y-3 bg-white rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto border border-gray-200">
+                            <p id="on-water-message" class="text-gray-500 text-center">No one is on the water.</p>
+                            <!-- Rower items will be dynamically added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Crew Management View -->
+            <div id="crews-container" class="hidden space-y-6">
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">Crew Management</h2>
+                
+                <!-- Add Crew Form -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Add a New Crew</h3>
+                    <input type="text" id="crew-name-input" placeholder="Crew Name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div id="crew-members-dropzone" class="w-full min-h-[8rem] p-4 border-2 border-dashed border-gray-300 rounded-lg flex flex-wrap gap-2 overflow-y-auto transition-colors duration-200">
+                        <p id="dropzone-text" class="text-gray-400 text-center w-full">Drag and drop members and a boat here to add to the crew</p>
+                    </div>
+                    <button id="add-crew-btn" class="w-full px-6 py-3 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-md">
+                        Save Crew
+                    </button>
+                </div>
+
+                <div class="flex flex-col lg:flex-row gap-6 mt-6">
+                    <!-- Club Members List Section for Crew Management -->
+                    <div class="flex-1 space-y-4">
+                        <h2 class="text-xl font-semibold text-gray-800">Available Members</h2>
+                        <input type="text" id="crew-search-member-name" placeholder="Find a member..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div id="crew-members-list" class="space-y-3 bg-gray-50 rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto">
+                            <p id="crew-loading-message" class="text-gray-500 text-center animate-pulse">Loading members list...</p>
+                            <!-- Draggable member items will be dynamically added here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Available Boats List Section for Crew Management -->
+                    <div class="flex-1 space-y-4">
+                        <h2 class="text-xl font-semibold text-gray-800">Available Boats</h2>
+                        <input type="text" id="boat-search-input" placeholder="Find a boat..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div id="boats-list" class="space-y-3 bg-gray-50 rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto">
+                            <p id="boats-loading-message" class="text-gray-500 text-center animate-pulse">Loading boat list...</p>
+                            <!-- Draggable boat items will be dynamically added here -->
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-center gap-4">
+                            <input type="text" id="add-boat-name-input" placeholder="Add new boat name" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button id="add-boat-btn" class="w-full sm:w-auto px-6 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-md">
+                                Add Boat
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Currently On Water List Section -->
-                <div class="flex-1 space-y-4">
-                    <h2 class="text-xl font-semibold text-gray-800 flex items-center justify-between">
-                        <span>Currently On Water</span>
-                        <span id="on-water-count" class="bg-green-100 text-green-800 text-sm font-bold px-3 py-1 rounded-full">0 on water</span>
-                    </h2>
-                    <div id="on-water-list" class="space-y-3 bg-white rounded-lg p-4 sm:p-6 shadow-inner h-96 overflow-y-auto border border-gray-200">
-                        <p id="on-water-message" class="text-gray-500 text-center">No one is on the water.</p>
-                        <!-- Rower items will be dynamically added here -->
+                <!-- Saved Crews List Section -->
+                <div class="flex-1 border-t border-gray-200 pt-6 mt-6 space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Saved Crews</h3>
+                    <div id="crews-list" class="space-y-4">
+                        <p id="loading-crews-message" class="text-gray-500 text-center animate-pulse">Loading crews...</p>
+                        <!-- Crews will be rendered here -->
                     </div>
-                    
+                </div>
+            </div>
+
+            <!-- User Management View -->
+            <div id="users-container" class="hidden space-y-6">
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">User Management</h2>
+                
+                <!-- Add Admin Form -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Grant Admin Privileges</h3>
+                    <div class="flex flex-col sm:flex-row items-center gap-4">
+                        <input type="email" id="admin-email-input" placeholder="Enter user's email" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button id="add-admin-btn" class="w-full sm:w-auto px-6 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-md">
+                            Grant Admin
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Current Admins List -->
+                <div class="border-t border-gray-200 pt-6 mt-6 space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Current Admins</h3>
+                    <div id="admins-list" class="space-y-4">
+                        <p id="loading-admins-message" class="text-gray-500 text-center animate-pulse">Loading admins...</p>
+                        <!-- Admins will be rendered here -->
+                    </div>
                 </div>
             </div>
 
@@ -116,6 +214,13 @@
         <div class="text-xs text-gray-400 mt-6 text-center">
             User ID: <span id="user-id">Loading...</span>
         </div>
+
+        <!-- Notification container -->
+        <div id="notification-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 hidden">
+             <div id="notification-message" class="w-full p-4 rounded-lg bg-blue-600 text-white font-semibold text-center shadow-lg transition-transform transform-gpu duration-500">
+                A crew has been posted!
+             </div>
+        </div>
     </div>
 
     <!-- Firebase SDKs -->
@@ -140,6 +245,7 @@
         let auth;
         let appId;
         let isAdmin = false;
+        let adminEmails = [];
 
         try {
             // Set debug level for all Firebase services before initialization
@@ -156,8 +262,51 @@
         let userId = null;
         let memberList = [];
         let onWaterMap = new Map();
+        let crews = [];
+        let boats = [];
+        
+        // State for managing new crew creation
+        let newCrew = {
+            members: [],
+            boat: null
+        };
 
-        // Get references to UI elements
+        // UI elements for the main tracker
+        const trackerContainer = document.getElementById('tracker-container');
+        const searchInput = document.getElementById('search-member-name');
+        const membersListEl = document.getElementById('members-list');
+        const onWaterListEl = document.getElementById('on-water-list');
+        const memberCountEl = document.getElementById('member-count');
+        const onWaterCountEl = document.getElementById('on-water-count');
+        const loadingMessageEl = document.getElementById('loading-message');
+        const statusMessageEl = document.getElementById('status-message');
+        const clearAllBtn = document.getElementById('clear-all-btn');
+
+        // UI elements for crew management
+        const crewsContainer = document.getElementById('crews-container');
+        const crewNameInput = document.getElementById('crew-name-input');
+        const crewMembersDropzone = document.getElementById('crew-members-dropzone');
+        const dropzoneText = document.getElementById('dropzone-text');
+        const addCrewBtn = document.getElementById('add-crew-btn');
+        const crewsListEl = document.getElementById('crews-list');
+        const loadingCrewsMessageEl = document.getElementById('loading-crews-message');
+        const crewMembersListEl = document.getElementById('crew-members-list');
+        const crewSearchInput = document.getElementById('crew-search-member-name');
+        const boatsListEl = document.getElementById('boats-list');
+        const boatSearchInput = document.getElementById('boat-search-input');
+        const boatsLoadingMessageEl = document.getElementById('boats-loading-message');
+        const addBoatNameInput = document.getElementById('add-boat-name-input');
+        const addBoatBtn = document.getElementById('add-boat-btn');
+
+        // UI elements for user management
+        const usersContainer = document.getElementById('users-container');
+        const goUsersBtn = document.getElementById('go-to-users-btn');
+        const adminEmailInput = document.getElementById('admin-email-input');
+        const addAdminBtn = document.getElementById('add-admin-btn');
+        const adminsListEl = document.getElementById('admins-list');
+        const loadingAdminsMessageEl = document.getElementById('loading-admins-message');
+
+        // General UI elements
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
         const loginBtn = document.getElementById('login-btn');
@@ -166,26 +315,26 @@
         const authEmailInput = document.getElementById('auth-email');
         const authPasswordInput = document.getElementById('auth-password');
         const authStatusMessageEl = document.getElementById('auth-status-message');
-
-        const membersListEl = document.getElementById('members-list');
-        const onWaterListEl = document.getElementById('on-water-list');
-        const memberCountEl = document.getElementById('member-count');
-        const onWaterCountEl = document.getElementById('on-water-count');
-        const loadingMessageEl = document.getElementById('loading-message');
-        const statusMessageEl = document.getElementById('status-message');
         const userIdSpan = document.getElementById('user-id');
-        const clearAllBtn = document.getElementById('clear-all-btn');
         const addMemberNameInput = document.getElementById('add-member-name');
         const addMemberBtn = document.getElementById('add-member-btn');
         const onWaterMessageEl = document.getElementById('on-water-message');
-        const searchInput = document.getElementById('search-member-name'); // New search input
         const adminActionsContainer = document.getElementById('admin-actions-container');
+        const adminNav = document.getElementById('admin-nav');
+        const goToTrackerBtn = document.getElementById('go-to-tracker-btn');
+        const goToCrewsBtn = document.getElementById('go-to-crews-btn');
 
         const modal = document.getElementById('modal');
         const modalMessageEl = document.getElementById('modal-message');
         const modalConfirmBtn = document.getElementById('modal-confirm-btn');
         const modalCancelBtn = document.getElementById('modal-cancel-btn');
 
+        const notificationContainer = document.getElementById('notification-container');
+        const notificationMessageEl = document.getElementById('notification-message');
+
+        // State for managing views
+        let currentView = 'tracker';
+        
         // Show/Hide Modal
         function showModal(message, onConfirm) {
             modalMessageEl.textContent = message;
@@ -202,6 +351,14 @@
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
             };
+        }
+
+        function showNotification(message) {
+            notificationMessageEl.textContent = message;
+            notificationContainer.classList.remove('hidden');
+            setTimeout(() => {
+                notificationContainer.classList.add('hidden');
+            }, 5000);
         }
 
         // --- Authentication Logic ---
@@ -249,40 +406,84 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // User is signed in
                 userId = user.uid;
                 userIdSpan.textContent = userId;
                 authContainer.classList.add('hidden');
                 appContainer.classList.remove('hidden');
 
-                // Check for admin
-                const adminEmail = 'rbvandijk@gmail.com'; // CHANGE THIS TO YOUR ADMIN'S EMAIL
-                if (user.email === adminEmail) {
-                    isAdmin = true;
-                    adminActionsContainer.classList.remove('hidden');
-                } else {
-                    isAdmin = false;
-                    adminActionsContainer.classList.add('hidden');
+                // Initial admin check for first-time use.
+                // After first use, all admin checks rely on the 'admins' collection.
+                const initialAdminEmail = 'rbvandijk@gmail.com'; // CHANGE THIS TO YOUR INITIAL ADMIN'S EMAIL
+                if (user.email === initialAdminEmail) {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'admins', user.uid), { email: initialAdminEmail });
                 }
-                
-                // Initialize master list if it doesn't exist
-                await initializeMasterList();
 
-                // Start listening to both collections for real-time updates
+                listenForAdmins();
+
+                await initializeMasterList();
+                await initializeBoatsList();
                 listenForMembers();
                 listenForOnWaterLog();
+                listenForCrews();
+                listenForNotifications();
             } else {
-                // User is signed out
                 userId = null;
                 isAdmin = false;
                 userIdSpan.textContent = 'Not logged in';
                 authContainer.classList.remove('hidden');
                 appContainer.classList.add('hidden');
-                // Clear the lists
                 membersListEl.innerHTML = '';
                 onWaterListEl.innerHTML = '';
+                adminNav.classList.add('hidden');
+                adminActionsContainer.classList.add('hidden');
+                // Ensure non-admin users cannot see admin-only pages
+                currentView = 'tracker';
+                renderView();
             }
         });
+
+        // --- View Management ---
+        goToTrackerBtn.addEventListener('click', () => {
+            currentView = 'tracker';
+            renderView();
+        });
+
+        goToCrewsBtn.addEventListener('click', () => {
+            currentView = 'crews';
+            renderView();
+        });
+
+        goUsersBtn.addEventListener('click', () => {
+            currentView = 'users';
+            renderView();
+        });
+
+        function renderView() {
+            trackerContainer.classList.add('hidden');
+            crewsContainer.classList.add('hidden');
+            usersContainer.classList.add('hidden');
+            
+            goToTrackerBtn.classList.remove('bg-blue-500');
+            goToTrackerBtn.classList.add('bg-gray-500');
+            goToCrewsBtn.classList.remove('bg-blue-500');
+            goToCrewsBtn.classList.add('bg-gray-500');
+            goUsersBtn.classList.remove('bg-blue-500');
+            goUsersBtn.classList.add('bg-gray-500');
+            
+            if (currentView === 'tracker') {
+                trackerContainer.classList.remove('hidden');
+                goToTrackerBtn.classList.add('bg-blue-500');
+            } else if (currentView === 'crews') {
+                crewsContainer.classList.remove('hidden');
+                goToCrewsBtn.classList.add('bg-blue-500');
+                renderMembersList(memberList, crewMembersListEl, 'member');
+                renderBoatsList(boats, boatsListEl, 'boat');
+            } else if (currentView === 'users') {
+                usersContainer.classList.remove('hidden');
+                goUsersBtn.classList.add('bg-blue-500');
+                renderAdminsList();
+            }
+        }
 
         // --- Firestore Initialization and Listeners ---
 
@@ -302,14 +503,68 @@
             }
         }
         
+        async function initializeBoatsList() {
+             const boatsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'boats');
+             const boatsSnap = await getDocs(boatsColRef);
+
+             if (boatsSnap.empty) {
+                 const sampleBoats = ["Single Scull", "Double Scull", "Quad Scull", "Eight"];
+                 const batch = writeBatch(db);
+                 sampleBoats.forEach(name => {
+                     const boatId = name.replace(/\s/g, '').toLowerCase();
+                     const docRef = doc(boatsColRef, boatId);
+                     batch.set(docRef, { name: name });
+                 });
+                 await batch.commit();
+             }
+        }
+
+        function listenForAdmins() {
+            const adminsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'admins');
+            onSnapshot(adminsColRef, (snapshot) => {
+                adminEmails = snapshot.docs.map(doc => doc.data().email);
+                isAdmin = auth.currentUser && adminEmails.includes(auth.currentUser.email);
+                
+                if (isAdmin) {
+                    adminNav.classList.remove('hidden');
+                    adminActionsContainer.classList.remove('hidden');
+                    renderAdminsList();
+                } else {
+                    adminNav.classList.add('hidden');
+                    adminActionsContainer.classList.add('hidden');
+                    if (currentView !== 'tracker') {
+                         currentView = 'tracker';
+                         renderView();
+                    }
+                }
+            }, (error) => {
+                console.error("Error fetching admins:", error);
+            });
+        }
+        
         function listenForMembers() {
             const membersColRef = collection(db, 'artifacts', appId, 'public', 'data', 'members');
             onSnapshot(membersColRef, (snapshot) => {
                 memberList = snapshot.docs.map(d => ({ id: d.id, name: d.data().name }));
                 memberCountEl.textContent = `${memberList.length} members`;
-                renderMembersList();
+                // Render the main tracker list if it's the current view
+                if (currentView === 'tracker') {
+                    renderMembersList();
+                } else if (currentView === 'crews') {
+                    renderMembersList(memberList, crewMembersListEl, 'member');
+                }
             }, (error) => {
                 console.error("Error fetching members:", error);
+            });
+        }
+        
+        function listenForBoats() {
+            const boatsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'boats');
+            onSnapshot(boatsColRef, (snapshot) => {
+                boats = snapshot.docs.map(d => ({ id: d.id, name: d.data().name }));
+                renderBoatsList(boats, boatsListEl, 'boat');
+            }, (error) => {
+                console.error("Error fetching boats:", error);
             });
         }
         
@@ -321,30 +576,68 @@
                     onWaterMap.set(doc.id, doc.data());
                 });
                 onWaterCountEl.textContent = `${onWaterMap.size} on water`;
-                renderMembersList(); // Re-render main list to update button states
-                renderOnWaterList(); // Render the separate on-water list
+                renderMembersList();
+                renderOnWaterList();
             }, (error) => {
                 console.error("Error fetching on water log:", error);
+            });
+        }
+        
+        function listenForCrews() {
+            const crewsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'crews');
+            onSnapshot(crewsColRef, (snapshot) => {
+                crews = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderCrewsList();
+            }, (error) => {
+                console.error("Error fetching crews:", error);
+            });
+        }
+
+        function listenForNotifications() {
+            const notificationsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'notifications');
+            onSnapshot(notificationsColRef, (snapshot) => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === "added") {
+                        const notificationData = change.doc.data();
+                        showNotification(notificationData.message);
+                    }
+                });
+            }, (error) => {
+                console.error("Error fetching notifications:", error);
             });
         }
 
         // --- UI Rendering Functions ---
         
-        function renderMembersList(listToRender = memberList) {
-            membersListEl.innerHTML = '';
-            loadingMessageEl.classList.add('hidden');
+        function renderMembersList(listToRender = memberList, containerEl = membersListEl, draggableType = null) {
+            if (!containerEl) return;
+            containerEl.innerHTML = '';
+            
+            const loadingEl = containerEl === membersListEl ? loadingMessageEl : document.getElementById('crew-loading-message');
+            if (loadingEl) {
+                loadingEl.classList.add('hidden');
+            }
             
             if (listToRender.length === 0) {
-                membersListEl.innerHTML = '<p class="text-gray-500 text-center py-4">No members match your search.</p>';
+                containerEl.innerHTML = '<p class="text-gray-500 text-center py-4">No members match your search.</p>';
             }
 
             listToRender.forEach(member => {
                 const isOnWater = onWaterMap.has(member.id);
                 const memberItem = document.createElement('div');
-                memberItem.className = `flex items-center justify-between p-4 rounded-lg shadow-sm border border-gray-200 transition-transform transform hover:scale-105 ${isOnWater ? 'bg-green-100' : 'bg-white'}`;
+                
+                if (draggableType) {
+                    memberItem.draggable = true;
+                    memberItem.dataset.type = draggableType;
+                    memberItem.dataset.id = member.id;
+                    memberItem.dataset.name = member.name;
+                    memberItem.className = `cursor-grab flex items-center justify-between p-4 rounded-lg shadow-sm border border-gray-200 transition-transform transform hover:scale-105 bg-white`;
+                } else {
+                    memberItem.className = `flex items-center justify-between p-4 rounded-lg shadow-sm border border-gray-200 transition-transform transform hover:scale-105 ${isOnWater ? 'bg-green-100' : 'bg-white'}`;
+                }
                 
                 let adminControls = '';
-                if (isAdmin) {
+                if (isAdmin && !draggableType) {
                     adminControls = `
                         <button class="remove-member-btn px-2 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-red-500 hover:bg-red-600"
                                 data-member-id="${member.id}">
@@ -354,51 +647,283 @@
                         </button>
                     `;
                 }
+                
+                let checkInOutButton = '';
+                if (!draggableType) {
+                    checkInOutButton = `
+                        <button class="check-btn px-4 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out ${isOnWater ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}"
+                                data-member-id="${member.id}"
+                                data-is-on-water="${isOnWater}">
+                            ${isOnWater ? 'Check Out' : 'Check In'}
+                        </button>
+                    `;
+                }
 
                 memberItem.innerHTML = `
                     <div class="flex-grow">
                         <p class="font-semibold text-gray-900 text-lg">${member.name}</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button class="check-btn px-4 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out ${isOnWater ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}"
-                                data-member-id="${member.id}"
-                                data-is-on-water="${isOnWater}">
-                            ${isOnWater ? 'Check Out' : 'Check In'}
-                        </button>
+                        ${checkInOutButton}
                         ${adminControls}
                     </div>
                 `;
-                membersListEl.appendChild(memberItem);
+                containerEl.appendChild(memberItem);
             });
 
-            // Attach event listeners for check-in/out buttons
-            document.querySelectorAll('.check-btn').forEach(button => {
-                button.addEventListener('click', (event) => {
-                    const memberId = event.currentTarget.getAttribute('data-member-id');
-                    const isOnWater = event.currentTarget.getAttribute('data-is-on-water') === 'true';
-                    const memberName = memberList.find(m => m.id === memberId).name;
-
-                    if (isOnWater) {
-                        showModal(`Are you sure you want to check out ${memberName}?`, () => {
-                            checkOutRower(memberId);
-                        });
-                    } else {
-                        checkInRower(memberId, memberName);
-                    }
-                });
-            });
-
-            // Attach event listeners for remove member buttons
-            if (isAdmin) {
-                document.querySelectorAll('.remove-member-btn').forEach(button => {
-                    button.addEventListener('click', (event) => {
-                        const memberId = event.currentTarget.getAttribute('data-member-id');
-                        const memberName = memberList.find(m => m.id === memberId).name;
-                        showModal(`Are you sure you want to remove ${memberName} from the member list?`, () => {
-                            removeMember(memberId);
-                        });
+            // Drag and Drop event listeners on member items
+            if (draggableType === 'member') {
+                document.querySelectorAll('#crew-members-list > div').forEach(item => {
+                    item.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('application/json', JSON.stringify({
+                            type: e.target.dataset.type,
+                            id: e.target.dataset.id,
+                            name: e.target.dataset.name
+                        }));
                     });
                 });
+            } else {
+                document.querySelectorAll('.check-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const memberId = event.currentTarget.getAttribute('data-member-id');
+                        const isOnWater = event.currentTarget.getAttribute('data-is-on-water') === 'true';
+                        const memberName = memberList.find(m => m.id === memberId).name;
+
+                        if (isOnWater) {
+                            showModal(`Are you sure you want to check out ${memberName}?`, () => {
+                                checkOutRower(memberId);
+                            });
+                        } else {
+                            checkInRower(memberId, memberName);
+                        }
+                    });
+                });
+
+                if (isAdmin) {
+                    document.querySelectorAll('.remove-member-btn').forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const memberId = event.currentTarget.getAttribute('data-member-id');
+                            const memberName = memberList.find(m => m.id === memberId).name;
+                            showModal(`Are you sure you want to remove ${memberName} from the member list?`, () => {
+                                removeMember(memberId);
+                            });
+                        });
+                    });
+                }
+            }
+        }
+        
+        function renderBoatsList(listToRender = boats, containerEl = boatsListEl, draggableType = null) {
+            if (!containerEl) return;
+            containerEl.innerHTML = '';
+            
+            const loadingEl = boatsLoadingMessageEl;
+            if (loadingEl) {
+                loadingEl.classList.add('hidden');
+            }
+
+            if (listToRender.length === 0) {
+                containerEl.innerHTML = '<p class="text-gray-500 text-center py-4">No boats match your search.</p>';
+            }
+            
+            listToRender.forEach(boat => {
+                 const boatItem = document.createElement('div');
+                 if (draggableType) {
+                    boatItem.draggable = true;
+                    boatItem.dataset.type = draggableType;
+                    boatItem.dataset.id = boat.id;
+                    boatItem.dataset.name = boat.name;
+                    boatItem.className = `cursor-grab flex items-center justify-between p-4 rounded-lg shadow-sm border border-gray-200 transition-transform transform hover:scale-105 bg-white`;
+                 }
+                
+                let editControls = '';
+                if (isAdmin) {
+                    editControls = `
+                        <button class="edit-boat-btn text-gray-500 hover:text-gray-700 p-1 rounded-full transition duration-150 ease-in-out" data-boat-id="${boat.id}" data-boat-name="${boat.name}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828L15.6 7.6a1 1 0 01-1.414-1.414l.707-.707zm-7.071 7.071l-4.243 4.243a1 1 0 000 1.414L3.8 17.2a1 1 0 001.414 0l4.243-4.243a1 1 0 000-1.414l-4.243-4.243zM14 6.414l-8 8V18h8v-3.586a1 1 0 000-1.414l-1.586-1.586z" clip-rule="evenodd" fill-rule="evenodd" />
+                            </svg>
+                        </button>
+                    `;
+                }
+
+                boatItem.innerHTML = `
+                    <div class="flex-grow">
+                        <p class="font-semibold text-gray-900 text-lg">${boat.name}</p>
+                    </div>
+                    ${editControls}
+                `;
+                containerEl.appendChild(boatItem);
+            });
+            
+            if (draggableType === 'boat') {
+                 document.querySelectorAll('#boats-list > div').forEach(item => {
+                    item.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('application/json', JSON.stringify({
+                            type: e.target.dataset.type,
+                            id: e.target.dataset.id,
+                            name: e.target.dataset.name
+                        }));
+                    });
+                 });
+
+                 // Add event listeners for editing
+                 document.querySelectorAll('.edit-boat-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const boatId = e.currentTarget.dataset.boatId;
+                        const boatName = e.currentTarget.dataset.boatName;
+                        const boatItem = e.currentTarget.closest('div');
+                        
+                        // Replace the p tag with an input field
+                        const newHtml = `
+                            <input type="text" value="${boatName}" class="edit-boat-input px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button class="save-boat-btn px-4 py-2 rounded-lg text-white font-semibold bg-blue-500 hover:bg-blue-600 transition">Save</button>
+                        `;
+                        boatItem.innerHTML = newHtml;
+
+                        const inputEl = boatItem.querySelector('.edit-boat-input');
+                        inputEl.focus();
+
+                        const saveBtn = boatItem.querySelector('.save-boat-btn');
+                        saveBtn.addEventListener('click', () => {
+                            const newName = inputEl.value.trim();
+                            if (newName) {
+                                updateBoatName(boatId, newName);
+                            }
+                        });
+
+                        inputEl.addEventListener('keydown', (event) => {
+                            if (event.key === 'Enter') {
+                                const newName = inputEl.value.trim();
+                                if (newName) {
+                                    updateBoatName(boatId, newName);
+                                }
+                            }
+                        });
+                    });
+                 });
+            }
+        }
+        
+        async function updateBoatName(boatId, newName) {
+            const boatDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'boats', boatId);
+            try {
+                await setDoc(boatDocRef, { name: newName }, { merge: true });
+                showStatusMessage('Boat name updated successfully!', 'green');
+            } catch (e) {
+                console.error('Error updating boat name:', e);
+                showStatusMessage('Error updating boat name. Please try again.', 'red');
+            }
+        }
+
+
+        // Drag and drop events for the dropzone
+        crewMembersDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        });
+        
+        crewMembersDropzone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+        });
+
+        crewMembersDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            try {
+                const data = JSON.parse(e.dataTransfer.getData('application/json'));
+
+                if (data.type === 'member') {
+                    // Check if member is already in the crew
+                    const isMemberInCrew = newCrew.members.some(m => m.id === data.id);
+                    if (!isMemberInCrew) {
+                         const seat = newCrew.members.length + 1;
+                         const memberObject = { id: data.id, name: data.name, seat: seat };
+                         newCrew.members.push(memberObject);
+                         const memberChip = createDraggableChip(data.name, data.id, 'member', seat, newCrew.members.length);
+                         crewMembersDropzone.appendChild(memberChip);
+                         dropzoneText.classList.add('hidden');
+                     }
+                } else if (data.type === 'boat') {
+                    if (!newCrew.boat) {
+                        newCrew.boat = data.name;
+                        const boatChip = createDraggableChip(data.name, data.id, 'boat');
+                        crewMembersDropzone.appendChild(boatChip);
+                        dropzoneText.classList.add('hidden');
+                    } else {
+                         // Optional: Add a message that only one boat can be added
+                         showStatusMessage("Only one boat can be added to a crew.", 'yellow');
+                    }
+                }
+            } catch (error) {
+                console.error("Error parsing dropped data:", error);
+            }
+        });
+
+        function getSeatDisplay(seat, crewLength) {
+            if ((crewLength === 5 && seat === 5) || (crewLength === 9 && seat === 9)) {
+                return 'Cox';
+            }
+            return seat;
+        }
+        
+        function createDraggableChip(name, id, type, seat = null, crewLength = null) {
+            const chip = document.createElement('span');
+            chip.className = 'inline-flex items-center gap-x-1.5 py-1 px-2 rounded-full text-xs font-medium bg-blue-100 text-blue-800';
+            
+            const seatDisplay = getSeatDisplay(seat, crewLength);
+
+            let nameToDisplay = name;
+            if (seatDisplay) {
+                nameToDisplay = `${seatDisplay}. ${name}`;
+            }
+
+            chip.innerHTML = `
+                ${nameToDisplay}
+                <button type="button" class="remove-chip inline-flex items-center p-0.5 rounded-full text-blue-400 hover:bg-blue-200 hover:text-blue-500" data-id="${id}" data-type="${type}">
+                    <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M6.293 6.293a1 1 0 011.414 0L10 8.586l2.293-2.293a1 1 0 111.414 1.414L11.414 10l2.293 2.293a1 1 0 01-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 01-1.414-1.414L8.586 10 6.293 7.707a1 1 0 010-1.414z" clip-rule="evenodd" fill-rule="evenodd"></path>
+                    </svg>
+                </button>
+            `;
+            chip.querySelector('.remove-chip').addEventListener('click', (e) => {
+                const idToRemove = e.currentTarget.dataset.id;
+                const typeToRemove = e.currentTarget.dataset.type;
+                if (typeToRemove === 'member') {
+                     const indexToRemove = newCrew.members.findIndex(m => m.id === idToRemove);
+                     if (indexToRemove > -1) {
+                        newCrew.members.splice(indexToRemove, 1);
+                        // Re-index the remaining members
+                        updateCrewMembersDisplay();
+                     }
+                } else if (typeToRemove === 'boat') {
+                     newCrew.boat = null;
+                }
+                e.currentTarget.parentElement.remove();
+                if (newCrew.members.length === 0 && !newCrew.boat) {
+                    dropzoneText.classList.remove('hidden');
+                }
+            });
+            return chip;
+        }
+
+        function updateCrewMembersDisplay() {
+            crewMembersDropzone.innerHTML = '';
+            newCrew.members.forEach((member, index) => {
+                member.seat = index + 1;
+                const memberChip = createDraggableChip(member.name, member.id, 'member', member.seat, newCrew.members.length);
+                crewMembersDropzone.appendChild(memberChip);
+            });
+            if (newCrew.boat) {
+                 const boatChip = createDraggableChip(newCrew.boat, null, 'boat');
+                 crewMembersDropzone.appendChild(boatChip);
+            }
+            if (newCrew.members.length === 0 && !newCrew.boat) {
+                dropzoneText.classList.remove('hidden');
+            } else {
+                dropzoneText.classList.add('hidden');
             }
         }
 
@@ -416,13 +941,134 @@
                 const lastUpdated = rower.timestamp ? new Date(rower.timestamp.toDate()).toLocaleTimeString() : 'N/A';
                 
                 rowerItem.className = 'flex items-center justify-between p-4 bg-white rounded-lg shadow-sm border border-gray-200';
+                
+                const crew = crews.find(c => c.name === rower.crewName);
+                const seatDisplay = getSeatDisplay(rower.seat, crew ? crew.members.length : null);
+                
+                let crewInfo = '';
+                if (rower.crewName) {
+                    crewInfo += `<p class="text-xs text-gray-500">Crew: ${rower.crewName}</p>`;
+                }
+                if (rower.boatName) {
+                    crewInfo += `<p class="text-xs text-gray-500">Boat: ${rower.boatName}</p>`;
+                }
+                
                 rowerItem.innerHTML = `
                     <div class="flex-grow">
-                        <p class="font-semibold text-gray-900 text-lg">${rower.name}</p>
+                        <p class="font-semibold text-gray-900 text-lg">${seatDisplay}. ${rower.name}</p>
+                        ${crewInfo}
                         <p class="text-xs text-gray-500">Checked in at: ${lastUpdated}</p>
                     </div>
                 `;
                 onWaterListEl.appendChild(rowerItem);
+            });
+        }
+        
+        function renderCrewsList() {
+            crewsListEl.innerHTML = '';
+            loadingCrewsMessageEl.classList.add('hidden');
+            
+            if (crews.length === 0) {
+                crewsListEl.innerHTML = '<p class="text-gray-500 text-center py-4">No crews have been saved yet.</p>';
+            }
+
+            crews.forEach(crew => {
+                const crewItem = document.createElement('div');
+                crewItem.className = 'bg-gray-100 rounded-lg p-4 space-y-2 border border-gray-200';
+                
+                const memberNames = crew.members.map(member => {
+                    const memberName = memberList.find(m => m.id === member.id)?.name;
+                    const seatDisplay = getSeatDisplay(member.seat, crew.members.length);
+                    return `${seatDisplay}. ${memberName}`;
+                }).join(', ');
+                
+                const boatNameDisplay = crew.boat ? `<p class="text-sm text-gray-600">Boat: ${crew.boat}</p>` : '';
+
+                crewItem.innerHTML = `
+                    <h4 class="font-bold text-gray-900">${crew.name}</h4>
+                    ${boatNameDisplay}
+                    <p class="text-sm text-gray-600">Members: ${memberNames}</p>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        <button class="post-crew-btn px-4 py-2 rounded-lg text-white font-semibold bg-blue-500 hover:bg-blue-600 transition" data-crew-id="${crew.id}">
+                            Post Crew
+                        </button>
+                        <button class="clear-crew-btn px-4 py-2 rounded-lg text-white font-semibold bg-red-500 hover:bg-red-600 transition" data-crew-id="${crew.id}">
+                            Clear Crew
+                        </button>
+                        <button class="delete-crew-btn px-2 py-2 rounded-lg text-white font-semibold bg-gray-500 hover:bg-gray-600 transition" data-crew-id="${crew.id}">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                crewsListEl.appendChild(crewItem);
+            });
+
+            // Attach event listeners for crew actions
+            document.querySelectorAll('.post-crew-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const crewId = event.currentTarget.getAttribute('data-crew-id');
+                    const crew = crews.find(c => c.id === crewId);
+                    if (crew) {
+                        showModal(`Are you sure you want to post the crew "${crew.name}"? This will check in all members.`, () => {
+                            postCrew(crew.members, crew.name, crew.boat);
+                        });
+                    }
+                });
+            });
+            document.querySelectorAll('.clear-crew-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const crewId = event.currentTarget.getAttribute('data-crew-id');
+                    const crew = crews.find(c => c.id === crewId);
+                    if (crew) {
+                        showModal(`Are you sure you want to clear the crew "${crew.name}"? This will check out all members.`, () => {
+                            clearCrew(crew.members);
+                        });
+                    }
+                });
+            });
+            document.querySelectorAll('.delete-crew-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const crewId = event.currentTarget.getAttribute('data-crew-id');
+                    const crew = crews.find(c => c.id === crewId);
+                    if (crew) {
+                        showModal(`Are you sure you want to delete the crew "${crew.name}"? This cannot be undone.`, () => {
+                            deleteCrew(crewId);
+                        });
+                    }
+                });
+            });
+        }
+
+        function renderAdminsList() {
+            adminsListEl.innerHTML = '';
+            loadingAdminsMessageEl.classList.add('hidden');
+            
+            if (adminEmails.length === 0) {
+                adminsListEl.innerHTML = '<p class="text-gray-500 text-center py-4">No admins have been set yet.</p>';
+            }
+
+            adminEmails.forEach(email => {
+                const adminItem = document.createElement('div');
+                adminItem.className = 'flex items-center justify-between p-4 bg-gray-100 rounded-lg shadow-sm border border-gray-200';
+                
+                adminItem.innerHTML = `
+                    <p class="font-semibold text-gray-900">${email}</p>
+                    <button class="revoke-admin-btn px-4 py-2 rounded-lg text-white font-semibold bg-red-500 hover:bg-red-600 transition" data-admin-email="${email}">
+                        Revoke
+                    </button>
+                `;
+                adminsListEl.appendChild(adminItem);
+            });
+            
+            document.querySelectorAll('.revoke-admin-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const emailToRevoke = event.currentTarget.getAttribute('data-admin-email');
+                    showModal(`Are you sure you want to revoke admin rights for "${emailToRevoke}"?`, () => {
+                         revokeAdmin(emailToRevoke);
+                    });
+                });
             });
         }
 
@@ -460,7 +1106,6 @@
             const onWaterDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'on_water_log', memberId);
             
             try {
-                // Check if they are on the water first
                 if (onWaterMap.has(memberId)) {
                     statusMessageEl.textContent = `${memberName} is currently on the water and cannot be removed.`;
                     statusMessageEl.classList.remove('hidden', 'bg-green-100');
@@ -535,7 +1180,7 @@
         searchInput.addEventListener('input', (event) => {
             const searchTerm = event.target.value.toLowerCase().trim();
             if (searchTerm === '') {
-                renderMembersList(); // Show all members if search is empty
+                renderMembersList();
             } else {
                 const filteredMembers = memberList.filter(member => 
                     member.name.toLowerCase().includes(searchTerm)
@@ -543,6 +1188,178 @@
                 renderMembersList(filteredMembers);
             }
         });
+        
+        crewSearchInput.addEventListener('input', (event) => {
+            const searchTerm = event.target.value.toLowerCase().trim();
+            if (searchTerm === '') {
+                renderMembersList(memberList, crewMembersListEl, 'member');
+            } else {
+                const filteredMembers = memberList.filter(member => 
+                    member.name.toLowerCase().includes(searchTerm)
+                );
+                renderMembersList(filteredMembers, crewMembersListEl, 'member');
+            }
+        });
+        
+        boatSearchInput.addEventListener('input', (event) => {
+            const searchTerm = event.target.value.toLowerCase().trim();
+            if (searchTerm === '') {
+                renderBoatsList();
+            } else {
+                const filteredBoats = boats.filter(boat =>
+                    boat.name.toLowerCase().includes(searchTerm)
+                );
+                renderBoatsList(filteredBoats, boatsListEl, 'boat');
+            }
+        });
+        
+        // --- Admin User Management Functions ---
+        addAdminBtn.addEventListener('click', async () => {
+            const email = adminEmailInput.value.trim();
+            if (!email) {
+                showStatusMessage('Please enter an email.', 'yellow');
+                return;
+            }
+            adminEmailInput.value = '';
+            
+            const adminDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'admins', email.replace(/[^a-zA-Z0-9]/g, '').toLowerCase());
+            
+            try {
+                await setDoc(adminDocRef, { email: email });
+                showStatusMessage(`Admin rights granted to ${email}.`, 'green');
+            } catch (e) {
+                console.error("Error granting admin rights:", e);
+                showStatusMessage(`Error granting rights. Please try again.`, 'red');
+            }
+        });
+        
+        async function revokeAdmin(email) {
+            const adminDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'admins', email.replace(/[^a-zA-Z0-9]/g, '').toLowerCase());
+            
+            try {
+                await deleteDoc(adminDocRef);
+                showStatusMessage(`Admin rights revoked for ${email}.`, 'green');
+            } catch (e) {
+                console.error("Error revoking admin rights:", e);
+                showStatusMessage(`Error revoking rights. Please try again.`, 'red');
+            }
+        }
+
+        // --- Crew Management Functions ---
+        addCrewBtn.addEventListener('click', async () => {
+            const crewName = crewNameInput.value.trim();
+            const crewMembersArray = newCrew.members;
+            const crewBoatName = newCrew.boat;
+            
+            if (!crewName || crewMembersArray.length === 0) {
+                showStatusMessage('Please enter a crew name and add at least one member.', 'yellow');
+                return;
+            }
+
+            const crewDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'crews', crewName.replace(/\s/g, '').toLowerCase());
+
+            try {
+                await setDoc(crewDocRef, { name: crewName, members: crewMembersArray, boat: crewBoatName });
+                crewNameInput.value = '';
+                newCrew.members = [];
+                newCrew.boat = null;
+                updateCrewMembersDisplay(); // This will clear the dropzone and reset the display
+                showStatusMessage(`Crew "${crewName}" saved successfully.`, 'green');
+            } catch (e) {
+                console.error("Error saving crew:", e);
+                showStatusMessage(`Error saving crew. Please try again.`, 'red');
+            }
+        });
+        
+        addBoatBtn.addEventListener('click', async () => {
+            const newBoatName = addBoatNameInput.value.trim();
+            if (!newBoatName) {
+                showStatusMessage('Please enter a boat name.', 'yellow');
+                return;
+            }
+            addBoatNameInput.value = '';
+
+            const boatId = newBoatName.replace(/\s/g, '').toLowerCase();
+            const boatDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'boats', boatId);
+
+            try {
+                await setDoc(boatDocRef, { name: newBoatName });
+                showStatusMessage(`${newBoatName} added successfully.`, 'green');
+            } catch (e) {
+                console.error("Error adding boat:", e);
+                showStatusMessage(`Error adding boat. Please try again.`, 'red');
+            }
+        });
+
+        function showStatusMessage(message, type) {
+            statusMessageEl.textContent = message;
+            statusMessageEl.classList.remove('hidden', 'bg-green-100', 'bg-yellow-100', 'bg-red-100', 'text-green-800', 'text-yellow-800', 'text-red-800');
+            statusMessageEl.classList.add(`bg-${type}-100`, `text-${type}-800`);
+            setTimeout(() => {
+                statusMessageEl.classList.add('hidden');
+            }, 3000);
+        }
+
+        async function postCrew(members, crewName, boatName) {
+            const batch = writeBatch(db);
+            const onWaterColRef = collection(db, 'artifacts', appId, 'public', 'data', 'on_water_log');
+            const notificationsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'notifications');
+            
+            // Add notification to the batch
+            const notificationDocRef = doc(notificationsColRef);
+            let notificationMessage = `Crew "${crewName}" has been checked in.`;
+            if (boatName) {
+                notificationMessage = `Crew "${crewName}" in boat "${boatName}" has been checked in.`;
+            }
+            batch.set(notificationDocRef, { message: notificationMessage, timestamp: new Date() });
+
+            members.forEach(member => {
+                if (!onWaterMap.has(member.id)) {
+                    const docRef = doc(onWaterColRef, member.id);
+                    batch.set(docRef, { name: member.name, seat: member.seat, crewName: crewName, boatName: boatName, timestamp: new Date() });
+                }
+            });
+
+            try {
+                await batch.commit();
+                showStatusMessage("Crew checked in successfully!", 'green');
+                // The notification listener will handle displaying the message
+            } catch (e) {
+                console.error("Error posting crew:", e);
+                showStatusMessage("Error posting crew. Please try again.", 'red');
+            }
+        }
+        
+        async function clearCrew(members) {
+            const batch = writeBatch(db);
+            const onWaterColRef = collection(db, 'artifacts', appId, 'public', 'data', 'on_water_log');
+
+            members.forEach(member => {
+                 if (onWaterMap.has(member.id)) {
+                    const docRef = doc(onWaterColRef, member.id);
+                    batch.delete(docRef);
+                }
+            });
+
+            try {
+                await batch.commit();
+                showStatusMessage("Crew checked out successfully!", 'green');
+            } catch (e) {
+                console.error("Error clearing crew:", e);
+                showStatusMessage("Error clearing crew. Please try again.", 'red');
+            }
+        }
+
+        async function deleteCrew(crewId) {
+            const crewDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'crews', crewId);
+            try {
+                await deleteDoc(crewDocRef);
+                showStatusMessage(`Crew deleted successfully.`, 'green');
+            } catch (e) {
+                console.error("Error deleting crew:", e);
+                showStatusMessage(`Error deleting crew. Please try again.`, 'red');
+            }
+        }
     </script>
 </body>
 </html>
