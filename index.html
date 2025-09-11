@@ -76,8 +76,8 @@
 
             ---
 
-            <!-- Admin Actions Section -->
-            <div class="border-t border-gray-200 pt-6 mt-6 space-y-4">
+            <!-- Admin Actions Section (Visible only to admin user) -->
+            <div id="admin-actions-container" class="hidden border-t border-gray-200 pt-6 mt-6 space-y-4">
                 <h3 class="text-lg font-semibold text-gray-800">Admin Actions</h3>
                 
                 <!-- Add Member Form -->
@@ -176,6 +176,7 @@
         const addMemberBtn = document.getElementById('add-member-btn');
         const onWaterMessageEl = document.getElementById('on-water-message');
         const searchInput = document.getElementById('search-member-name'); // New search input
+        const adminActionsContainer = document.getElementById('admin-actions-container');
 
         const modal = document.getElementById('modal');
         const modalMessageEl = document.getElementById('modal-message');
@@ -250,6 +251,14 @@
                 userIdSpan.textContent = userId;
                 authContainer.classList.add('hidden');
                 appContainer.classList.remove('hidden');
+
+                // Check for admin
+                const adminEmail = 'admin@safetytracker.com'; // CHANGE THIS TO YOUR ADMIN'S EMAIL
+                if (user.email === adminEmail) {
+                    adminActionsContainer.classList.remove('hidden');
+                } else {
+                    adminActionsContainer.classList.add('hidden');
+                }
                 
                 // Initialize master list if it doesn't exist
                 await initializeMasterList();
