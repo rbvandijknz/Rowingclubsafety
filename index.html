@@ -66,11 +66,7 @@
                         <p id="on-water-message" class="text-gray-500 text-center">No one is on the water.</p>
                         <!-- Rower items will be dynamically added here -->
                     </div>
-                    <div class="mt-4">
-                        <button id="clear-all-btn" class="w-full px-6 py-3 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md">
-                            Clear All On-Water Rowers
-                        </button>
-                    </div>
+                    
                 </div>
             </div>
 
@@ -89,6 +85,12 @@
                 </div>
 
                 <div id="status-message" class="text-sm font-medium p-2 rounded-lg text-center hidden"></div>
+
+                 <div class="mt-4">
+                    <button id="clear-all-btn" class="w-full px-6 py-3 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md">
+                        Clear All On-Water Rowers
+                    </button>
+                </div>
             </div>
             
             <div class="mt-8">
@@ -137,6 +139,7 @@
         let db;
         let auth;
         let appId;
+        let isAdmin = false;
 
         try {
             // Set debug level for all Firebase services before initialization
@@ -253,10 +256,12 @@
                 appContainer.classList.remove('hidden');
 
                 // Check for admin
-                const adminEmail = 'admin@safetytracker.com'; // CHANGE THIS TO YOUR ADMIN'S EMAIL
+                const adminEmail = 'rbvandijk@gmail.com'; // CHANGE THIS TO YOUR ADMIN'S EMAIL
                 if (user.email === adminEmail) {
+                    isAdmin = true;
                     adminActionsContainer.classList.remove('hidden');
                 } else {
+                    isAdmin = false;
                     adminActionsContainer.classList.add('hidden');
                 }
                 
@@ -269,6 +274,7 @@
             } else {
                 // User is signed out
                 userId = null;
+                isAdmin = false;
                 userIdSpan.textContent = 'Not logged in';
                 authContainer.classList.remove('hidden');
                 appContainer.classList.add('hidden');
@@ -337,6 +343,18 @@
                 const memberItem = document.createElement('div');
                 memberItem.className = `flex items-center justify-between p-4 rounded-lg shadow-sm border border-gray-200 transition-transform transform hover:scale-105 ${isOnWater ? 'bg-green-100' : 'bg-white'}`;
                 
+                let adminControls = '';
+                if (isAdmin) {
+                    adminControls = `
+                        <button class="remove-member-btn px-2 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-red-500 hover:bg-red-600"
+                                data-member-id="${member.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    `;
+                }
+
                 memberItem.innerHTML = `
                     <div class="flex-grow">
                         <p class="font-semibold text-gray-900 text-lg">${member.name}</p>
@@ -347,12 +365,7 @@
                                 data-is-on-water="${isOnWater}">
                             ${isOnWater ? 'Check Out' : 'Check In'}
                         </button>
-                        <button class="remove-member-btn px-2 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-red-500 hover:bg-red-600"
-                                data-member-id="${member.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
+                        ${adminControls}
                     </div>
                 `;
                 membersListEl.appendChild(memberItem);
@@ -376,15 +389,17 @@
             });
 
             // Attach event listeners for remove member buttons
-            document.querySelectorAll('.remove-member-btn').forEach(button => {
-                button.addEventListener('click', (event) => {
-                    const memberId = event.currentTarget.getAttribute('data-member-id');
-                    const memberName = memberList.find(m => m.id === memberId).name;
-                    showModal(`Are you sure you want to remove ${memberName} from the member list?`, () => {
-                        removeMember(memberId);
+            if (isAdmin) {
+                document.querySelectorAll('.remove-member-btn').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const memberId = event.currentTarget.getAttribute('data-member-id');
+                        const memberName = memberList.find(m => m.id === memberId).name;
+                        showModal(`Are you sure you want to remove ${memberName} from the member list?`, () => {
+                            removeMember(memberId);
+                        });
                     });
                 });
-            });
+            }
         }
 
         function renderOnWaterList() {
