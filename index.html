@@ -68,6 +68,9 @@
                 <button id="go-to-crews-btn" class="px-4 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md">
                     Crew Management
                 </button>
+                <button id="go-to-users-btn" class="px-4 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md">
+                    User Management
+                </button>
             </div>
 
             <!-- Safety Tracker View -->
@@ -154,6 +157,30 @@
                 </div>
             </div>
 
+            <!-- User Management View -->
+            <div id="users-container" class="hidden space-y-6">
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-800">User Management</h2>
+                
+                <!-- Grant Admin Form -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Grant Admin Privileges</h3>
+                    <div class="flex flex-col sm:flex-row items-center gap-4">
+                        <input type="email" id="grant-admin-email" placeholder="User email to grant admin" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button id="grant-admin-btn" class="w-full sm:w-auto px-6 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-md">
+                            Grant Admin
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Current Admins List -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Current Admins</h3>
+                    <div id="admins-list" class="space-y-3 bg-gray-50 rounded-lg p-4 sm:p-6 shadow-inner">
+                        <p class="text-gray-500 text-center">Loading admins...</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Admin Actions Section (Visible only to admin user) -->
             <div id="admin-actions-container" class="hidden border-t border-gray-200 pt-6 mt-6 space-y-4">
                 <h3 class="text-lg font-semibold text-gray-800">Admin Actions</h3>
@@ -232,7 +259,8 @@
         let onWaterMap = new Map();
         let crews = [];
         let boats = [];
-        let currentView = 'tracker'; // New state variable
+        let admins = [];
+        let currentView = 'tracker'; 
         
         // State for managing new crew creation
         let newCrew = {
@@ -264,9 +292,11 @@
         const adminNav = document.getElementById('admin-nav');
         const goToTrackerBtn = document.getElementById('go-to-tracker-btn');
         const goToCrewsBtn = document.getElementById('go-to-crews-btn');
+        const goToUsersBtn = document.getElementById('go-to-users-btn');
 
         const trackerContainer = document.getElementById('tracker-container');
         const crewsContainer = document.getElementById('crews-container');
+        const usersContainer = document.getElementById('users-container');
         const searchInput = document.getElementById('search-member-name');
         const membersListEl = document.getElementById('members-list');
         const onWaterListEl = document.getElementById('on-water-list');
@@ -302,6 +332,10 @@
         const notificationContainer = document.getElementById('notification-container');
         const notificationMessage = document.getElementById('notification-message');
         
+        const grantAdminEmailInput = document.getElementById('grant-admin-email');
+        const grantAdminBtn = document.getElementById('grant-admin-btn');
+        const adminsListEl = document.getElementById('admins-list');
+
         // Show/Hide Modal
         function showModal(message, onConfirm) {
             modalMessageEl.textContent = message;
@@ -390,18 +424,9 @@
                 authContainer.classList.add('hidden');
                 appContainer.classList.remove('hidden');
                 
-                // Check if user is the admin
-                isAdmin = (user.email === initialAdminEmail);
-                if (isAdmin) {
-                    adminActionsContainer.classList.remove('hidden');
-                    adminNav.classList.remove('hidden');
-                    listenForCrews();
-                    listenForBoats();
-                } else {
-                    adminActionsContainer.classList.add('hidden');
-                    adminNav.classList.add('hidden');
-                }
-
+                listenForAdmins(user.email);
+                listenForCrews();
+                listenForBoats();
                 await initializeMasterList();
                 listenForMembers();
                 listenForOnWaterLog();
@@ -411,20 +436,55 @@
                 appContainer.classList.add('hidden');
             }
         });
+
+        function listenForAdmins(userEmail) {
+            const adminsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'admins');
+            onSnapshot(adminsColRef, async (snapshot) => {
+                admins = snapshot.docs.map(d => d.data().email);
+                isAdmin = admins.includes(userEmail);
+                
+                if (isAdmin) {
+                    adminActionsContainer.classList.remove('hidden');
+                    adminNav.classList.remove('hidden');
+                } else {
+                    adminActionsContainer.classList.add('hidden');
+                    adminNav.classList.add('hidden');
+                }
+
+                // Initial admin setup logic
+                if (userEmail === initialAdminEmail && snapshot.empty) {
+                    await setDoc(doc(adminsColRef, userEmail), { email: userEmail });
+                }
+
+                renderAdminsList();
+            }, (error) => {
+                console.error("Error fetching admins:", error);
+            });
+        }
         
         // --- Navigation ---
         goToTrackerBtn.addEventListener('click', () => {
             trackerContainer.classList.remove('hidden');
             crewsContainer.classList.add('hidden');
+            usersContainer.classList.add('hidden');
             currentView = 'tracker';
         });
 
         goToCrewsBtn.addEventListener('click', () => {
             trackerContainer.classList.add('hidden');
             crewsContainer.classList.remove('hidden');
+            usersContainer.classList.add('hidden');
             currentView = 'crews';
             renderCrewMembersList();
             renderBoatsList();
+        });
+
+        goToUsersBtn.addEventListener('click', () => {
+            trackerContainer.classList.add('hidden');
+            crewsContainer.classList.add('hidden');
+            usersContainer.classList.remove('hidden');
+            currentView = 'users';
+            renderAdminsList();
         });
 
         // --- Firestore Initialization and Listeners ---
@@ -470,8 +530,11 @@
             onSnapshot(membersColRef, (snapshot) => {
                 memberList = snapshot.docs.map(d => ({ id: d.id, name: d.data().name }));
                 memberCountEl.textContent = `${memberList.length} members`;
-                renderMembersList();
-                renderCrewMembersList();
+                if(currentView === 'tracker') {
+                    renderMembersList();
+                } else if(currentView === 'crews') {
+                    renderCrewMembersList();
+                }
             }, (error) => {
                 console.error("Error fetching members:", error);
             });
@@ -485,7 +548,9 @@
                     onWaterMap.set(doc.id, doc.data());
                 });
                 onWaterCountEl.textContent = `${onWaterMap.size} on water`;
-                renderMembersList();
+                if(currentView === 'tracker') {
+                    renderMembersList();
+                }
                 renderOnWaterList();
             }, (error) => {
                 console.error("Error fetching on water log:", error);
@@ -613,11 +678,13 @@
                 
                 boatItem.innerHTML = `
                     <p class="flex-grow">${boat.name} (${boat.class})</p>
-                    <button class="delete-boat-btn text-red-500 hover:text-red-700 transition-colors" data-boat-id="${boat.id}">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
-                            <path fill-rule="evenodd" d="M16.5 4.475C16.5 3.197 15.303 2 14.025 2H9.975C8.697 2 7.5 3.197 7.5 4.475v.225a.75.75 0 00.75.75h.75a.75.75 0 00.75-.75v-.225a.75.75 0 01.75-.75h2.05a.75.75 0 01.75.75v.225a.75.75 0 00.75.75h.75a.75.75 0 00.75-.75v-.225zM12 5.25a.75.75 0 00-1.5 0v1.5a.75.75 0 001.5 0v-1.5zM6.75 8a.75.75 0 00-.75.75v8.5c0 1.278 1.197 2.375 2.375 2.375h5.5c1.178 0 2.375-1.097 2.375-2.375v-8.5a.75.75 0 00-1.5 0v8.5a.75.75 0 01-.75.75h-5.5a.75.75 0 01-.75-.75v-8.5a.75.75 0 00-.75-.75z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
+                    ${isAdmin ? `
+                        <button class="delete-boat-btn text-red-500 hover:text-red-700 transition-colors" data-boat-id="${boat.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+                                <path fill-rule="evenodd" d="M16.5 4.475C16.5 3.197 15.303 2 14.025 2H9.975C8.697 2 7.5 3.197 7.5 4.475v.225a.75.75 0 00.75.75h.75a.75.75 0 00.75-.75v-.225a.75.75 0 01.75-.75h2.05a.75.75 0 01.75.75v.225a.75.75 0 00.75.75h.75a.75.75 0 00.75-.75v-.225zM12 5.25a.75.75 0 00-1.5 0v1.5a.75.75 0 001.5 0v-1.5zM6.75 8a.75.75 0 00-.75.75v8.5c0 1.278 1.197 2.375 2.375 2.375h5.5c1.178 0 2.375-1.097 2.375-2.375v-8.5a.75.75 0 00-1.5 0v8.5a.75.75 0 01-.75.75h-5.5a.75.75 0 01-.75-.75v-8.5a.75.75 0 00-.75-.75z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    ` : ''}
                 `;
                 boatsListEl.appendChild(boatItem);
             });
@@ -686,6 +753,27 @@
                 savedCrewsListEl.appendChild(crewItem);
             });
             setupCrewButtons();
+        }
+        
+        function renderAdminsList() {
+            adminsListEl.innerHTML = '';
+            if (admins.length === 0) {
+                 adminsListEl.innerHTML = '<p class="text-gray-500 text-center py-4">No admins have been set up yet. The initial admin email can grant privileges.</p>';
+            }
+
+            admins.forEach(email => {
+                const adminItem = document.createElement('div');
+                adminItem.className = 'flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border border-gray-200';
+                
+                adminItem.innerHTML = `
+                    <p class="flex-grow">${email}</p>
+                    <button class="revoke-admin-btn px-4 py-2 rounded-lg text-white font-semibold transition duration-300 ease-in-out bg-red-500 hover:bg-red-600"
+                            data-email="${email}">
+                        Revoke
+                    </button>
+                `;
+                adminsListEl.appendChild(adminItem);
+            });
         }
         
         function setupCrewButtons() {
@@ -788,7 +876,7 @@
                         if (!newCrew.members.some(m => m.id === memberId)) {
                              newCrew.members.push({ id: memberId, name: memberName });
                              updateDropzoneDisplay();
-                             renderCrewMembersList(); // Re-render available members
+                             renderCrewMembersList(); 
                         }
                     } else if (isBoat) {
                         newCrew.boat = { 
@@ -837,7 +925,7 @@
                 deleteBtn.onclick = () => {
                     newCrew.members = newCrew.members.filter(m => m.id !== member.id);
                     updateDropzoneDisplay();
-                    renderCrewMembersList(); // Re-render available members
+                    renderCrewMembersList(); 
                 };
                 memberEl.appendChild(deleteBtn);
                 crewMembersDropzone.appendChild(memberEl);
@@ -1011,6 +1099,45 @@
                 setStatusMessage('Member added successfully!', 'success');
             } catch (e) {
                 setStatusMessage(`Error adding member: ${e.message}`);
+            }
+        });
+        
+        // --- User Management Functions ---
+        
+        grantAdminBtn.addEventListener('click', async () => {
+            const email = grantAdminEmailInput.value.trim();
+            if (!email) {
+                setStatusMessage("Email cannot be empty.");
+                return;
+            }
+            
+            const adminsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'admins');
+            try {
+                await setDoc(doc(adminsColRef, email.replace(/\./g, '_')), { email: email });
+                grantAdminEmailInput.value = '';
+                setStatusMessage('Admin privileges granted successfully!', 'success');
+            } catch (e) {
+                setStatusMessage(`Error granting admin privileges: ${e.message}`);
+            }
+        });
+        
+        adminsListEl.addEventListener('click', async (event) => {
+            if (event.target.classList.contains('revoke-admin-btn')) {
+                const emailToRevoke = event.target.getAttribute('data-email');
+                if (emailToRevoke === auth.currentUser.email) {
+                    showModal("You cannot revoke your own admin privileges.", () => {});
+                    return;
+                }
+                
+                showModal(`Are you sure you want to revoke admin privileges for ${emailToRevoke}?`, async () => {
+                    const adminsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'admins');
+                    try {
+                        await deleteDoc(doc(adminsColRef, emailToRevoke.replace(/\./g, '_')));
+                        setStatusMessage('Admin privileges revoked successfully!', 'success');
+                    } catch (e) {
+                        setStatusMessage(`Error revoking admin privileges: ${e.message}`);
+                    }
+                });
             }
         });
 
