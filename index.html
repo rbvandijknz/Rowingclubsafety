@@ -1044,6 +1044,8 @@
             try {
                 await batch.commit();
                 showNotification(`Crew "${crew.name}" has been posted!`);
+                renderOnWaterList();
+                renderMembersList();
             } catch (e) {
                 console.error("Error posting crew:", e);
             }
@@ -1061,6 +1063,8 @@
             try {
                 await batch.commit();
                 showNotification(`Crew "${crew.name}" has been cleared!`);
+                renderOnWaterList();
+                renderMembersList();
             } catch (e) {
                 console.error("Error clearing crew:", e);
             }
@@ -1079,6 +1083,9 @@
                 });
                 
                 await batch.commit();
+                // Manually trigger a re-render after the batch commit
+                renderOnWaterList();
+                renderMembersList();
             });
         });
 
